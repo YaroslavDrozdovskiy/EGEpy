@@ -56,9 +56,9 @@ class TaskType1(Task):
         accepted = movement[movement['Тип операции'] == 'Поступление']['Количество упаковок, шт.'].sum()
         soled = movement[movement['Тип операции'] == 'Продажа']['Количество упаковок, шт.'].sum()
         self.correct = accepted - soled
-        self.text = (f"на сколько увеличилось количество упаковок товара \"{self.name}\" "
-                     f"имеющихся в наличии в магазинах {self.district} за период c {self.dates_info[0]} по "
-                     f"{self.dates_info[-1]} "
+        self.text = (f"на сколько увеличилось количество упаковок товара \"{self.name}\", "
+                     f"имеющихся в наличии в магазинах {districts_genetive(self.district)} района за период c {self.dates_info[0]} по "
+                     f"{self.dates_info[-1]}."
                      "В ответе запишите только число.</p>")
 
         return self.text, self.correct
@@ -76,7 +76,7 @@ class TaskType2(Task):
         self.text = (f"сколько {measure_genetive(self.measurement)} "
                      f"товара \"{self.name}\" {fork} в "
                      f"магазинах {districts_genetive(self.district)} района за период с "
-                     f"{self.dates_info[0]} до {self.dates_info[-1]}\n"
+                     f"{self.dates_info[0]} до {self.dates_info[-1]}.\n"
                      "В ответе запишите только число. Ответ округлите до десятых.</p>")
         if fork == 'было продано':
             var = self.movement_type1_3[self.movement_type1_3['Тип операции'] == 'Продажа'][
@@ -89,7 +89,7 @@ class TaskType2(Task):
         return self.text, self.correct
 
     def fork(self):
-        return self.rnd.pick(['было продано', 'поступило'])
+        return self.rnd.pick(['было продано', 'появилось'])
 
 
 class TaskType3(Task):
@@ -104,7 +104,7 @@ class TaskType3(Task):
         self.text = (f"сколько рублей {fork[0]} "
                      f"{districts_genetive(self.district)} района {fork[1]} "
                      f"товара \"{self.name}\" за период с "
-                     f"{self.dates_info[0]} до {self.dates_info[-1]}\n"
+                     f"{self.dates_info[0]} до {self.dates_info[-1]}.\n"
                      "В ответе запишите только число.</p>")
         if fork[0] == 'выручили магазины':
             var = self.movement_type1_3[self.movement_type1_3['Тип операции'] == 'Продажа'][
@@ -132,7 +132,7 @@ class TaskType4(TaskType3):
         self.text = (f"сколько рублей {fork[0]} "
                      f"{districts_genetive(self.district)} района {fork[1]} "
                      f"товаров поставщика \"{self.provider}\" за период с "
-                     f"{self.dates_info[0]} до {self.dates_info[-1]}\n"
+                     f"{self.dates_info[0]} до {self.dates_info[-1]}.\n"
                      "В ответе запишите только число.</p>")
         if fork[0] == 'потребовалось магазинам':
             var = self.movement_type4[self.movement_type4['Тип операции'] == 'Продажа'][
@@ -241,16 +241,16 @@ class GenDatabase(DirectInput):
         counter_shops = 0
         counter_days = 0
         j = 0
-        for i in range(0, int(self.number_of_rows / 2), 2):
-            day = ''
-            shop = ''
+        day = ''
+        shop = ''
+        for i in range(0, int(self.number_of_rows), 2):
             articul = self.rnd.in_range(0, len(price_list) - 1)
             if i == counter_shops:
                 counter_shops += lines_per_shop
                 shop = self.rnd.pick(shops_lst)
                 shops_lst.remove(shop)
 
-            if (i == counter_days) & (i != self.number_of_rows):
+            if i == counter_days:
                 shops_lst = shops_ids.copy()
                 day = self.dates[j]
                 counter_days += lines_per_day[j]
@@ -278,11 +278,12 @@ class GenDatabase(DirectInput):
         return movement
 
     def gen_text(self, product, shops, movement, price_list, num=0):
-        product_id = self.rnd.in_range(1, self.number_of_products)
+        product_id = self.rnd.in_range(1, self.number_of_products - 1)
         shops_list = movement['ID Магазина'].unique()
         district_list = shops[shops['ID Магазина'].isin(shops_list)]['Район'].unique()
         district = self.rnd.pick(district_list)
-        movement_type1_3 = movement[movement['Артикул'] == product_id].copy()
+        shop_to_filter = shops[shops['Район'] == district]['ID Магазина']
+        movement_type1_3 = movement[movement['ID Магазина'].isin(shop_to_filter)].copy()
 
         provider = self.rnd.pick(product['Поставщик'].unique())
         product_list = product[product['Поставщик'] == provider]['Артикул'].to_list()
@@ -386,6 +387,10 @@ class GenDatabase(DirectInput):
 
     def generate(self):
         # нужен ли пандас? или использовать имеющийся код для бд
+        # вроде бы работает
+        # первый тип задачек проверен
+        # не все магазины из списка магазинов присутствуют в таблице движения товара
+        # как вариант можно формировать таблицу магазинов после таблицы движения товаров
         product, price_list = self.gen_products()
         shops, shops_ids = self.gen_shops()
         product, shops = pd.DataFrame(product), pd.DataFrame(shops)
