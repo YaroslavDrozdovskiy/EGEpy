@@ -137,6 +137,7 @@ questions_2022 = [q.generate() for q in [
     Z08.Pencils(rnd),
     Z08.VasyaMarks(rnd),
     Z08.BlackWhiteBalls2(rnd),
+    Z08.Pencils2(rnd),
 ]]
 
 if not sys.stdout.isatty():
