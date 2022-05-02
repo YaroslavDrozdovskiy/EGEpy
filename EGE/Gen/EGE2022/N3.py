@@ -26,8 +26,9 @@ class Problem:
                  amount: int,
                  district: str,
                  dates_info: list[str],
-                 movement_type1_3,
-                 movement_type4,
+                 shop_to_filter,
+                 product_list,
+                 movement,
                  mutations):
         self.rnd = rnd
         self.name = name
@@ -38,8 +39,9 @@ class Problem:
         self.amount = amount
         self.district = district
         self.dates_info = dates_info
-        self.movement_type1_3 = movement_type1_3
-        self.movement_type4 = movement_type4
+        self.shop_to_filter = shop_to_filter
+        self.product_list = product_list
+        self.movement = movement
         self.text = ""
         self.correct = -1
         self.mutations = mutations
@@ -49,13 +51,14 @@ class Problem:
 
 
 class FirstProblemType(Problem):
-    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, movement_type1_3,
-                 movement_type4):
-        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info,
-                         movement_type1_3, movement_type4, {})
+    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                 product_list, movement):
+        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                         product_list, movement, {})
 
     def gen(self):
-        movement = self.movement_type1_3[self.movement_type1_3['Артикул'] == self.prod_id]
+        movement = self.movement[self.movement['ID Магазина'].isin(self.shop_to_filter)].copy()
+        movement = movement[movement['Артикул'] == self.prod_id]
         accepted = movement[movement['Тип операции'] == 'Поступление']['Количество упаковок, шт.'].sum()
         soled = movement[movement['Тип операции'] == 'Продажа']['Количество упаковок, шт.'].sum()
         self.correct = accepted - soled
@@ -68,86 +71,90 @@ class FirstProblemType(Problem):
 
 
 class SecondProblemType(Problem):
-    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, movement_type1_3,
-                 movement_type4):
-        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info,
-                         movement_type1_3, movement_type4, {1: 'было продано', 2: 'появилось'})
+    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                 product_list, movement):
+        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                         product_list, movement, {1: 'было продано', 2: 'появилось'})
 
     def gen(self):
-        var = -1
+        temp_calc = -1
         mutation = self.mutation()
-        movement = self.movement_type1_3[self.movement_type1_3['Артикул'] == self.prod_id]
+        movement = self.movement[self.movement['ID Магазина'].isin(self.shop_to_filter)].copy()
+        movement = movement[movement['Артикул'] == self.prod_id]
         self.text = (f"сколько {measure_genetive(self.measurement)} "
                      f"товара \"{self.name}\" {mutation} в "
                      f"магазинах {districts_genetive(self.district)} района за период с "
                      f"{self.dates_info[0]} до {self.dates_info[-1]}.\n"
                      "В ответе запишите только число. Ответ округлите до десятых.</p>")
         if mutation == 'было продано':
-            var = movement[movement['Тип операции'] == 'Продажа'][
+            temp_calc = movement[movement['Тип операции'] == 'Продажа'][
                 'Количество упаковок, шт.'].sum()
         elif mutation == 'появилось':
-            var = movement[movement['Тип операции'] == 'Поступление'][
+            temp_calc = movement[movement['Тип операции'] == 'Поступление'][
                 'Количество упаковок, шт.'].sum()
 
-        self.correct = var * self.amount
+        self.correct = temp_calc * self.amount
         return self.text, self.correct
 
 
 class ThirdProblemType(Problem):
-    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, movement_type1_3,
-                 movement_type4):
-        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info,
-                         movement_type1_3, movement_type4,
+    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                 product_list, movement):
+        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                         product_list, movement,
                          {1: ['потребовалось магазинам', 'для закупки'], 2: ['выручили магазины', 'от продажи']})
 
     def gen(self):
         mutation = self.mutation()
-        var = -1
-        movement = self.movement_type1_3[self.movement_type1_3['Артикул'] == self.prod_id]
+        temp_calc = -1
+        movement = self.movement[self.movement['ID Магазина'].isin(self.shop_to_filter)].copy()
+        movement = movement[movement['Артикул'] == self.prod_id]
         self.text = (f"сколько рублей {mutation[0]} "
                      f"{districts_genetive(self.district)} района {mutation[1]} "
                      f"товара \"{self.name}\" за период с "
                      f"{self.dates_info[0]} до {self.dates_info[-1]}.\n"
                      "В ответе запишите только число.</p>")
         if mutation[0] == 'выручили магазины':
-            var = movement[movement['Тип операции'] == 'Продажа'][
+            temp_calc = movement[movement['Тип операции'] == 'Продажа'][
                 'Количество упаковок, шт.'].sum()
         elif mutation[0] == 'потребовалось магазинам':
-            var = movement[movement['Тип операции'] == 'Поступление'][
+            temp_calc = movement[movement['Тип операции'] == 'Поступление'][
                 'Количество упаковок, шт.'].sum()
 
-        self.correct = var * self.price
+        self.correct = temp_calc * self.price
         return self.text, self.correct
 
 
 class ForthProblemType(ThirdProblemType):
-    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, movement_type1_3,
-                 movement_type4):
-        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info,
-                         movement_type1_3, movement_type4)
+    def __init__(self, rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                 product_list, movement):
+        super().__init__(rnd, name, price, provider, measurement, prod_id, amount, district, dates_info, shop_to_filter,
+                         product_list, movement)
 
     def gen(self):
         mutation = self.mutation()
-        var = -1
+        temp_calc = -1
+        movement = self.movement[self.movement['Артикул'].isin(self.product_list)].copy()
+        movement = movement[movement['ID Магазина'].isin(self.shop_to_filter)]
         self.text = (f"сколько рублей {mutation[0]} "
                      f"{districts_genetive(self.district)} района {mutation[1]} "
                      f"товаров поставщика \"{self.provider}\" за период с "
                      f"{self.dates_info[0]} до {self.dates_info[-1]}.\n"
                      "В ответе запишите только число.</p>")
         if mutation[0] == 'потребовалось магазинам':
-            var = self.movement_type4[self.movement_type4['Тип операции'] == 'Поступление'][
+            temp_calc = self.movement[self.movement['Тип операции'] == 'Поступление'][
                 'Количество упаковок, шт.']
-            var = var * self.movement_type4[self.movement_type4['Тип операции'] == 'Поступление'][
+            temp_calc = temp_calc * self.movement[self.movement['Тип операции'] == 'Поступление'][
                 'Цена руб./шт.']
-            var = var.sum()
+            temp_calc = temp_calc.sum()
         elif mutation[0] == 'выручили магазины':
-            var = self.movement_type4[self.movement_type4['Тип операции'] == 'Продажа'][
+            temp_calc = self.movement[self.movement['Тип операции'] == 'Продажа'][
                 'Количество упаковок, шт.']
-            var = var * self.movement_type4[self.movement_type4['Тип операции'] == 'Продажа'][
+            temp_calc = temp_calc * self.movement[self.movement['Тип операции'] == 'Продажа'][
                 'Цена руб./шт.']
-            var = var.sum()
+            temp_calc = temp_calc.sum()
 
-        self.correct = var
+        self.correct = temp_calc
         return self.text, self.correct
 
 
@@ -290,12 +297,11 @@ class GenDatabase(DirectInput):
         district_list = shops[shops['ID Магазина'].isin(shops_list)]['Район'].unique()
         district = self.rnd.pick(district_list)
         shop_to_filter = shops[shops['Район'] == district]['ID Магазина']
-        movement_type1_3 = movement[movement['ID Магазина'].isin(shop_to_filter)].copy()
-
         provider = self.rnd.pick(product['Поставщик'].unique())
         product_list = product[product['Поставщик'] == provider]['Артикул'].to_list()
-        movement_type4 = movement[movement['Артикул'].isin(product_list)].copy()
-        movement_type4 = movement_type4[movement_type4['ID Магазина'].isin(shop_to_filter)]
+        # movement_type1_3 = movement[movement['ID Магазина'].isin(shop_to_filter)].copy()
+        # movement_type4 = movement[movement['Артикул'].isin(product_list)].copy()
+        # movement_type4 = movement_type4[movement_type4['ID Магазина'].isin(shop_to_filter)]
         task_type = [FirstProblemType, SecondProblemType, ThirdProblemType, ForthProblemType]
         task = task_type[self.rnd.pick([0, 1, 2, 3])](rnd=self.rnd,
                                                       name=products[product_id].name,
@@ -308,8 +314,9 @@ class GenDatabase(DirectInput):
                                                           ['Количество в упаковке']].values[0],
                                                       district=district,
                                                       dates_info=self.dates,
-                                                      movement_type1_3=movement_type1_3,
-                                                      movement_type4=movement_type4)
+                                                      shop_to_filter=shop_to_filter,
+                                                      product_list=product_list,
+                                                      movement=movement)
         task, ans = task.gen()
         self.text += task
         self.correct = ans

@@ -7,12 +7,12 @@ import EGE.Random
 from EGE.Gen.EGE import A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12, A13, A15, A16, A17, A18
 from EGE.Gen.EGE import B01, B02, B03, B04, B05, B06, B07, B08, B10, B11, B12, B13, B14, B15
 from EGE.Gen.EGE import Z06, Z09, Z10, Z11, Z12, Z13, Z15, Z16, Z18, Z22
-from EGE.Gen.EGE2022 import y3
+from EGE.Gen.EGE2022 import N3
 
-rnd = EGE.Random.Random(89789789000000)
+rnd = EGE.Random.Random(100000000000000000000)
 
 questions = [q.generate() for q in [
-    y3.GenDatabase(rnd)
+    N3.GenDatabase(rnd)
     # A01.Recode(rnd),
     # A01.Simple(rnd),
     # A02.SportsmanNumbers(rnd),
@@ -127,15 +127,6 @@ questions = [q.generate() for q in [
     # Z18.BitwiseConjunction(rnd),
     # Z22.CalculatorFindPrgmCount(rnd),
 ]]
-# print(questions)
-# for i in questions[0]:
-#     print(i)
-
-# if not sys.stdout.isatty():
-#     sys.stdout.reconfigure(encoding='utf-8') # type: ignore
-# print(EGE.Html.make_html(questions))
-#
-#
-with open('test.xhtml', 'w', encoding='utf-8') as f:
-    print(EGE.Html.make_html(questions), file=f)
-#print(EGE.Html.make_html(questions))
+if not sys.stdout.isatty():
+    sys.stdout.reconfigure(encoding='utf-8') # type: ignore
+print(EGE.Html.make_html(questions))
